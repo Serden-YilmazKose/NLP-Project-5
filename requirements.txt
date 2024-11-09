@@ -1,0 +1,13 @@
+matplotlib
+numpy
+pandas
+seaborn
+torch
+empath
+gensim
+nltk
+scipy
+scikit-learn
+pyspellchecker
+transformers
+vaderSentiment
