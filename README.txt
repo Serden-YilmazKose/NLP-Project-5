@@ -1,26 +1,8 @@
-All tasks are found in the NLP-course-project.ipynb file.
-Tasks like 10. and 12. take a long time to run. The cost of corrections in task 10 are saved in corrections.csv file so the code for it doesn't need to be ran again.
+Project Github repo: https://github.com/Serden-YilmazKose/NLP-Project-5
 
-Needed Python libraries:
-nltk
-numpy
-sklearn
-pandas
-json
-itertools
-statistics
-matplotlib
-scipy
-vaderSentiment
-pprint
-seaborn
-empath
-gensim
-torch
-transformers
-random
-spellchecker
-os
+All tasks except for task 12 are found in the "NLP-course-project.ipynb file". Code for task 12 is found in "task_12.py".
 
-Also, in Task 10, Nvidia CUDA was used to enable GPU support for training and utilizing of our doc2vec model.
+To install all required libraries run: pip install -r requirements.txt
+
+Also, in Task 10, Nvidia CUDA was used to enable GPU support for training and utilizing of our doc2vec model, if you don't have CUDA installed it will run on CPU and take for a long time.
 
