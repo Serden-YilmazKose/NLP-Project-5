@@ -22,5 +22,5 @@ random
 spellchecker
 os
 
-Also, in Task 10, Nvidia CUDA was used to enable GPU support for training and utilizing our doc2vec model.
+Also, in Task 10, Nvidia CUDA was used to enable GPU support for training and utilizing of our doc2vec model.
 
