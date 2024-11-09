@@ -2,7 +2,6 @@ matplotlib
 numpy
 pandas
 seaborn
-torch
 empath
 gensim
 nltk
@@ -11,3 +10,4 @@ scikit-learn
 pyspellchecker
 transformers
 vaderSentiment
+tqdm

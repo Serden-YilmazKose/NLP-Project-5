@@ -10,6 +10,7 @@ import pandas as pd
 import json
 from nltk.tokenize import RegexpTokenizer
 import numpy as np
+import pickle
 tokenizer = RegexpTokenizer(r'\w+')
 
 filename_corrections = 'corrections.csv'
@@ -153,76 +154,45 @@ if __name__ == "__main__":
     distances_dict = {}
     already_found = {}
     chunk_size = 500  # Chunk size for parallel processing
+ 
+    # Calculate the total number of chunks for progress bar
+    total_chunks = sum(math.ceil(len(tokens) / chunk_size) for tokens in tokens_by_category_stopwords_removed.values())
+    
+    # Use tqdm to display a progress bar so that my head doesn't explode while waiting for this to execute
+    with tqdm(total=total_chunks, desc="Processing chunks of tokens") as pbar:
+        # Use ProcessPoolExecutor for parallel processing
+        with ProcessPoolExecutor() as executor:
+            futures = []
 
-    # Load corrections and distances if files exist
-    if not (os.path.exists(filename_corrections) and os.path.exists(filename_distances)):
+            # Submit each chunk as a separate task
+            for category_name, tokens in tokens_by_category_stopwords_removed.items():
+                for tokens_chunk in chunk_tokens(tokens, chunk_size):
+                    future = executor.submit(find_corrections_and_distances, category_name, tokens_chunk, already_found)
+                    futures.append(future)
+
+            # Collect results from completed chunks and update dictionaries
+            for future in as_completed(futures):
+                category_name, corrections, distances, local_found = future.result()
+                
+                # Accumulate corrections and distances for each category
+                if category_name not in corrections_dict:
+                    corrections_dict[category_name] = []
+                    distances_dict[category_name] = []
+                
+                corrections_dict[category_name].extend(corrections)
+                distances_dict[category_name].extend(distances)
+                
+                # Update the already found dictionary
+                already_found.update(local_found)
+
+                # Update progress bar
+                pbar.update(1)
         
-        # Calculate the total number of chunks for progress bar
-        total_chunks = sum(math.ceil(len(tokens) / chunk_size) for tokens in tokens_by_category_stopwords_removed.values())
-        
-        # Use tqdm to display a progress bar so that my head doesn't explode while waiting for this to execute
-        with tqdm(total=total_chunks, desc="Processing chunks of tokens") as pbar:
-            # Use ProcessPoolExecutor for parallel processing
-            with ProcessPoolExecutor() as executor:
-                futures = []
-
-                # Submit each chunk as a separate task
-                for category_name, tokens in tokens_by_category_stopwords_removed.items():
-                    for tokens_chunk in chunk_tokens(tokens, chunk_size):
-                        future = executor.submit(find_corrections_and_distances, category_name, tokens_chunk, already_found)
-                        futures.append(future)
-
-                # Collect results from completed chunks and update dictionaries
-                for future in as_completed(futures):
-                    category_name, corrections, distances, local_found = future.result()
-                    
-                    # Accumulate corrections and distances for each category
-                    if category_name not in corrections_dict:
-                        corrections_dict[category_name] = []
-                        distances_dict[category_name] = []
-                    
-                    corrections_dict[category_name].extend(corrections)
-                    distances_dict[category_name].extend(distances)
-                    
-                    # Update the already found dictionary
-                    already_found.update(local_found)
-
-                    # Update progress bar
-                    pbar.update(1)
-
-        # Save corrections and distances to json files
-        with open(filename_corrections, 'w', encoding='utf-8') as f:
-            for category, corrections in corrections_dict.items():
-                f.write(f'{category}\n')
-                for correction in corrections:
-                    f.write(f'{correction[0]},{correction[1]}\n')
-        with open(filename_distances, 'w', encoding='utf-8') as f:
-            for category, distances in distances_dict.items():
-                f.write(f'{category}\n')
-                for distance in distances:
-                    f.write(f'{distance}\n')
-    else:
-        # Load corrections and distances from files to save time
-        with open(filename_corrections, 'r', encoding='utf-8') as f:
-            current_category = None
-            for line in f:
-                line = line.strip()
-                if ',' not in line:
-                    current_category = line
-                    corrections_dict[current_category] = []
-                else:
-                    correction = line.split(',')
-                    corrections_dict[current_category].append((correction[0], correction[1]))
-
-        with open(filename_distances, 'r', encoding='utf-8') as f:
-            current_category = None
-            for line in f:
-                line = line.strip()
-                if any(char.isalpha() for char in line):
-                    current_category = line
-                    distances_dict[current_category] = []
-                else:
-                    distances_dict[current_category].append(int(line))
+        # Save corrections and distances to pickle files
+        with open('corrections.pkl', 'wb') as f:
+            pickle.dump(corrections_dict, f)
+        with open('distances.pkl', 'wb') as f:
+            pickle.dump(distances_dict, f)
         
     # Print statistics for each category (mean, median and standard deviation)
     for category, distances in distances_dict.items():
